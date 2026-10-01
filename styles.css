@@ -8,6 +8,22 @@ body {
   animation: backgroundColorChange 100s linear infinite;
 }
 
+.badge-new {
+  display: inline-block;
+  background-color: #ff2d55;
+  color: #ffffff;
+  font-family: Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-right: 6px;
+  vertical-align: middle;
+  box-shadow: 0 0 4px rgba(255, 45, 85, 0.6);
+}
+
 @keyframes backgroundColorChange {
   0% {
     background-color: #FF6B35;

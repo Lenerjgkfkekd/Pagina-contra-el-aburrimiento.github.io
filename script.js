@@ -58,11 +58,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function formatoTiempo(segundosTotales) {
     if (!segundosTotales) return 'Sin jugar aún';
-    const horas = Math.floor(segundosTotales / 3600);
+    const dias = Math.floor(segundosTotales / 86400);
+    const horas = Math.floor((segundosTotales % 86400) / 3600);
     const minutos = Math.floor((segundosTotales % 3600) / 60);
-    if (horas > 0) return `${horas}h ${minutos}m jugadas`;
-    if (minutos > 0) return `${minutos}m jugadas`;
-    return `${segundosTotales}s jugados`;
+    const segundos = segundosTotales % 60;
+    return `${dias}d ${horas}h ${minutos}m ${segundos}s`;
   }
 
   function actualizarInfoTiempo() {
@@ -75,6 +75,35 @@ document.addEventListener('DOMContentLoaded', () => {
         enlace.appendChild(info);
       }
       info.textContent = formatoTiempo(tiempos[enlace.href] || 0);
+    });
+  }
+
+  // ===== Etiqueta "NEW" (dura 7 días desde data-added) =====
+  function diasDesde(fechaStr) {
+    const inicio = new Date(fechaStr + 'T00:00:00');
+    const ahora = new Date();
+    return (ahora - inicio) / (1000 * 60 * 60 * 24);
+  }
+
+  function esNuevo(enlace) {
+    const fecha = enlace.dataset.added;
+    if (!fecha) return false;
+    return diasDesde(fecha) < 7;
+  }
+
+  function actualizarEtiquetasNuevo() {
+    contenedor.querySelectorAll('a[data-added]').forEach(enlace => {
+      let badge = enlace.querySelector('.badge-new');
+      if (esNuevo(enlace)) {
+        if (!badge) {
+          badge = document.createElement('span');
+          badge.className = 'badge-new';
+          badge.textContent = 'NEW';
+          enlace.insertBefore(badge, enlace.firstChild);
+        }
+      } else if (badge) {
+        badge.remove();
+      }
     });
   }
 
@@ -91,6 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   registrarRegreso();
+  actualizarEtiquetasNuevo();
 
   function ordenarEnlaces(tipo) {
     if (!contenedor) return;
@@ -101,20 +131,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const posicionesIniciales = new Map();
     enlaces.forEach(el => posicionesIniciales.set(el, el.getBoundingClientRect()));
 
-    let ordenados;
-    if (tipo === 'za') {
-      ordenados = enlaces.sort((a, b) =>
-        b.textContent.trim().localeCompare(a.textContent.trim(), 'es', { sensitivity: 'base' })
-      );
-    } else if (tipo === 'visitas') {
-      ordenados = enlaces.sort((a, b) => (visitas[b.href] || 0) - (visitas[a.href] || 0));
-    } else if (tipo === 'tiempo') {
-      ordenados = enlaces.sort((a, b) => (tiempos[b.href] || 0) - (tiempos[a.href] || 0));
-    } else {
-      ordenados = enlaces.sort((a, b) =>
-        a.textContent.trim().localeCompare(b.textContent.trim(), 'es', { sensitivity: 'base' })
-      );
+    function comparar(a, b) {
+      if (tipo === 'za') {
+        return b.textContent.trim().localeCompare(a.textContent.trim(), 'es', { sensitivity: 'base' });
+      } else if (tipo === 'visitas') {
+        return (visitas[b.href] || 0) - (visitas[a.href] || 0);
+      } else if (tipo === 'tiempo') {
+        return (tiempos[b.href] || 0) - (tiempos[a.href] || 0);
+      }
+      return a.textContent.trim().localeCompare(b.textContent.trim(), 'es', { sensitivity: 'base' });
     }
+
+    // Los links "nuevos" (NEW) siempre van primero, sin importar el orden elegido
+    const nuevos = enlaces.filter(esNuevo).sort(comparar);
+    const resto = enlaces.filter(el => !esNuevo(el)).sort(comparar);
+    const ordenados = [...nuevos, ...resto];
 
     ordenados.forEach(el => contenedor.appendChild(el));
 
@@ -142,4 +173,3 @@ document.addEventListener('DOMContentLoaded', () => {
   ordenarEnlaces(localStorage.getItem('orden-sitio') || 'az');
   actualizarInfoTiempo();
 });
-
